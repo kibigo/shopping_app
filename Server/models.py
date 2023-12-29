@@ -10,7 +10,7 @@ metadata = MetaData()
 
 db = SQLAlchemy(metadata=metadata)
 
-class User:
+class User(db.Model, SerializerMixin):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key = True)
@@ -20,6 +20,9 @@ class User:
     password = db.Column(db.String, nullable = False)
     created_at = db.Column(db.DateTime(), server_default = db.func.now())
     updated_at = db.Column(db.DateTime(), onupdate = db.func.now)
+
+    orders = db.relationship("Order", backref = "users")
+    reviews = db.relationship("Review", backref = "users")
 
     def __repr__(self):
         return f'Customer: {self.firstname}'
@@ -37,3 +40,82 @@ class User:
         if not re.search(pattern, email):
             raise ValueError(F"{email} is not a valid email")
         return email
+    
+
+class Commodity(db.Model, SerializerMixin):
+    __tablename__ = 'commodities'
+
+    id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String)
+    description = db.Column(db.String)
+    price = db.Column(db.Integer)
+    category = db.Column(db.String)
+    imageUrl = db.Column(db.String)
+    rating = db.Column(db.Integer)
+    quantity = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime(), server_default = db.func.now())
+    updated_at = db.Column(db.DateTime(), onupdate = db.func.now)
+
+    order = db.relationship("Order", backref = "commodities")
+    reviews = db.relationship("Review", backref = "commodities")
+
+    def __repr__(self):
+        return f"Commodity name: {self.name}"
+    
+    @validates("rating")
+    def validat_rating(self, key, rating):
+        if rating <= 0 or rating > 6:
+            raise ValueError ("Enter a rating between 0 and 6!")
+        return rating
+    
+
+class Order(db.Model, SerializerMixin):
+    __tablename__ = "orders"
+
+    id = db.Column(db.Integer, primary_key = True)
+    order_id = db.Column(db.String)
+    orderDate = db.Column(db.DateTime(), server_default = db.func.now())
+    price = db.Column(db.Integer)
+    status = db.Column(db.String)
+    updated_at = db.Column(db.DateTime(), onupdate = db.func.now())
+
+
+    users_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    commodities_id = db.Column(db.Integer, db.ForeignKey("commodities.id"))
+
+
+    payments = db.relationship("Payment", backref = "orders")
+    
+
+    def __repr__(self):
+        return f"Order id: {self.order_id}"
+    
+class Payment(db.Model, SerializerMixin):
+    __tablename__ = "payments"
+
+    id = db.Column(db.Integer, primary_key = True)
+    paymentDate = db.Column(db.DateTime(), server_default = db.func.now())
+    paymentMethod = db.Column(db.String)
+    amount = db.Column(db.Integer)
+
+    order_id = db.Column(db.Integer, db.ForeignKey("orders.id"))
+
+
+
+    def __repr__(self):
+        return f"Payment Amount: {self.amount}"
+    
+
+class Review(db.Model, SerializerMixin):
+    __tablename__ = "reviews"
+
+    id = db.Column(db.Integer, primary_key = True)
+    rating = db.Column(db.Integer)
+    comment = db.Column(db.String)
+    created_at = db.Column(db.DateTime(), server_default = db.func.now())
+    updated_at = db.Column(db.DateTime(), onupdate = db.func.now())
+
+    order_id = db.Column(db.Integer, db.ForeignKey("orders.id"))
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+
+
